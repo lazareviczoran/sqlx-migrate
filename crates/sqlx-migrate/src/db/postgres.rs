@@ -10,7 +10,7 @@ impl super::Migrations for sqlx::PgConnection {
     async fn ensure_migrations_table(&mut self, table_name: &str) -> Result<(), sqlx::Error> {
         query(&format!(
             r#"
-                CREATE TABLE IF NOT EXISTS {} (
+                CREATE TABLE IF NOT EXISTS {table_name} (
                     version BIGINT PRIMARY KEY,
                     name TEXT NOT NULL,
                     applied_on TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -18,7 +18,6 @@ impl super::Migrations for sqlx::PgConnection {
                     execution_time BIGINT NOT NULL
                 );
                 "#,
-            table_name
         ))
         .execute(self)
         .await?;
@@ -70,10 +69,9 @@ impl super::Migrations for sqlx::PgConnection {
                 checksum,
                 execution_time
             FROM
-                {}
+                {table_name}
             ORDER BY version
             "#,
-            table_name
         ))
         .fetch_all(self)
         .await?;
@@ -96,16 +94,15 @@ impl super::Migrations for sqlx::PgConnection {
     ) -> Result<(), sqlx::Error> {
         query(&format!(
             r#"
-                INSERT INTO {} ( version, name, checksum, execution_time )
+                INSERT INTO {table_name} ( version, name, checksum, execution_time )
                 VALUES ( $1, $2, $3, $4 )
             "#,
-            table_name
         ))
         .bind(migration.version as i64)
         .bind(&*migration.name.clone())
         .bind(&*migration.checksum.clone())
         .bind(migration.execution_time.as_nanos() as i64)
-        .execute(tx)
+        .execute(&mut *tx.as_mut())
         .await?;
 
         Ok(())
@@ -116,16 +113,16 @@ impl super::Migrations for sqlx::PgConnection {
         version: u64,
         tx: &mut sqlx::Transaction<'_, Postgres>,
     ) -> Result<(), sqlx::Error> {
-        query(&format!(r#"DELETE FROM {} WHERE version = $1"#, table_name))
+        query(&format!(r#"DELETE FROM {table_name} WHERE version = $1"#))
             .bind(version as i64)
-            .execute(tx)
+            .execute(&mut *tx.as_mut())
             .await?;
 
         Ok(())
     }
 
     async fn clear_migrations(&mut self, table_name: &str) -> Result<(), sqlx::Error> {
-        query(&format!("TRUNCATE {}", table_name))
+        query(&format!("TRUNCATE {table_name}"))
             .execute(self)
             .await?;
         Ok(())

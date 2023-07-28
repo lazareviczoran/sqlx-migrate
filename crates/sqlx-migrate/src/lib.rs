@@ -251,7 +251,7 @@ where
     /// An error is returned on connection failure.
     pub async fn connect(url: &str) -> Result<Self, sqlx::Error> {
         let mut opts: <<DB as Database>::Connection as Connection>::Options = url.parse()?;
-        opts.disable_statement_logging();
+        opts = opts.disable_statement_logging();
 
         Ok(Self {
             options: MigratorOptions::default(),

@@ -30,13 +30,15 @@ where
     pub fn tx<'s, 't>(&'t mut self) -> impl Executor<'c, Database = Db> + 's + 't
     where
         's: 't,
-        &'s mut Transaction<'c, Db>: Executor<'c, Database = Db> + 's,
+        'c: 's,
+        's: 'c,
+        &'s mut <Db as sqlx::Database>::Connection: Executor<'c, Database = Db> + 's,
     {
         // SAFETY: Self is mutably borrowed.
         MigrationCtxExecutor {
             hash_only: self.hash_only,
-            hasher: unsafe { &mut *self.hasher  },
-            tx: unsafe { &mut *self.tx  },
+            hasher: unsafe { &mut *self.hasher },
+            tx: unsafe { &mut *self.tx },
         }
     }
 
@@ -53,7 +55,7 @@ struct MigrationCtxExecutor<'c, 't, Db>
 where
     Db: Database,
     'c: 't,
-    &'t mut Transaction<'c, Db>: Executor<'c, Database = Db>,
+    &'t mut <Db as sqlx::Database>::Connection: Executor<'c, Database = Db>,
 {
     pub(crate) hash_only: bool,
     pub(crate) hasher: &'t mut Sha256,
@@ -64,7 +66,8 @@ where
 impl<'c, 't, Db> Executor<'c> for MigrationCtxExecutor<'c, 't, Db>
 where
     Db: Database,
-    &'t mut Transaction<'c, Db>: Executor<'c, Database = Db>,
+    't: 'c,
+    &'t mut Db::Connection: Executor<'c, Database = Db>,
 {
     type Database = Db;
 
@@ -91,7 +94,7 @@ where
             return self.tx.borrow_mut().fetch_many("");
         }
 
-        self.tx.borrow_mut().fetch_many(query)
+        (self.tx.borrow_mut().as_mut()).fetch_many(query)
     }
 
     fn fetch_optional<'e, 'q: 'e, E: 'q>(

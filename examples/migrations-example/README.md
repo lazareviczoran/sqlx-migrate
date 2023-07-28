@@ -29,11 +29,11 @@ First add `sqlx`, `sqlx-migrate` to your dependencies, for example:
 
 ```toml
 [dependencies]
-sqlx = { version = "0.5.9", features = ["runtime-tokio-rustls", "postgres"] }
-sqlx-migrate = { version = "0.1.0", features = ["cli"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres"] }
+sqlx-migrate = { version = "0.6.0", features = ["cli"] }
 
 [build-dependencies]
-sqlx-migrate = { version = "0.1.0", features = ["generate"] }
+sqlx-migrate = { version = "0.6.0", features = ["generate"] }
 ```
 
 Then create a `build.rs` file with the following content:

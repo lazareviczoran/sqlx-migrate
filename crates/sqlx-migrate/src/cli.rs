@@ -278,10 +278,9 @@ fn add(
 
         if let Err(error) = fs::write(
             migrations_path.join(&up_filename),
-            &format!(
-                r#"-- Migration SQL for {}
+            format!(
+                r#"-- Migration SQL for {name}
 "#,
-                name
             ),
         ) {
             tracing::error!(error = %error, path = ?migrations_path.join(&up_filename), "failed to write file");
@@ -292,10 +291,9 @@ fn add(
             let down_filename = format!("{}_{}.revert.sql", &now_formatted, name);
             if let Err(error) = fs::write(
                 migrations_path.join(&down_filename),
-                &format!(
-                    r#"-- Revert SQL for {}
+                format!(
+                    r#"-- Revert SQL for {name}
 "#,
-                    name
                 ),
             ) {
                 tracing::error!(error = %error, path = ?migrations_path.join(&down_filename), "failed to write file");
@@ -311,21 +309,19 @@ fn add(
 
         if let Err(error) = fs::write(
             migrations_path.join(&up_filename),
-            &format!(
-                r#"use sqlx::{{{ty}}};
+            format!(
+                r#"use sqlx::{{{sqlx_type}}};
 use sqlx_migrate::prelude::*;
 
 /// Executes migration `{name}` in the given migration context.
 //
 // Do not modify the function name.
 // Do not modify the signature with the exception of the SQLx database type.
-pub async fn {name}(mut ctx: MigrationContext<'_, {ty}>) -> Result<(), MigrationError> {{
+pub async fn {name}(mut ctx: MigrationContext<'_, {sqlx_type}>) -> Result<(), MigrationError> {{
     // write your migration operations here
     todo!()
 }}
 "#,
-                name = name,
-                ty = sqlx_type
             ),
         ) {
             tracing::error!(error = %error, path = ?migrations_path.join(&up_filename), "failed to write file");
@@ -337,21 +333,19 @@ pub async fn {name}(mut ctx: MigrationContext<'_, {ty}>) -> Result<(), Migration
 
             if let Err(error) = fs::write(
                 migrations_path.join(&down_filename),
-                &format!(
-                    r#"use sqlx::{{{ty}}};
+                format!(
+                    r#"use sqlx::{{{sqlx_type}}};
 use sqlx_migrate::prelude::*;
 
 /// Reverts migration `{name}` in the given migration context.
 //
 // Do not modify the function name.
 // Do not modify the signature with the exception of the SQLx database type.
-pub async fn revert_{name}(mut ctx: MigrationContext<'_, {ty}>) -> Result<(), MigrationError> {{
+pub async fn revert_{name}(mut ctx: MigrationContext<'_, {sqlx_type}>) -> Result<(), MigrationError> {{
     // write your revert operations here
     todo!()
 }}
 "#,
-                    name = name,
-                    ty = sqlx_type
                 ),
             ) {
                 tracing::error!(error = %error, path = ?migrations_path.join(&down_filename), "failed to write file");
@@ -559,7 +553,7 @@ where
         ]));
     }
 
-    println!("{}", table);
+    println!("{table}");
 
     if !all_valid {
         process::exit(1);
@@ -616,7 +610,7 @@ fn print_summary(summary: &MigrationSummary) {
 
     table.add_row(s);
 
-    eprintln!("{}", table);
+    eprintln!("{table}");
 }
 
 async fn setup_migrator<DB>(migrate: &Migrate, migrations: Vec<Migration<DB>>) -> Migrator<DB>
@@ -648,10 +642,11 @@ where
         };
 
     if migrate.log_statements {
-        options.log_statements("INFO".parse().unwrap());
-        options.log_slow_statements("WARN".parse().unwrap(), Duration::from_secs(1));
+        options = options
+            .log_statements("INFO".parse().unwrap())
+            .log_slow_statements("WARN".parse().unwrap(), Duration::from_secs(1));
     } else {
-        options.disable_statement_logging();
+        options = options.disable_statement_logging();
     }
 
     match Migrator::connect_with(&options).await {

@@ -6,7 +6,7 @@ use walkdir::WalkDir;
 
 /// Generate Rust code from a migrations directory.
 /// It is meant to be used in `build.rs`.
-/// 
+///
 /// # Panics
 ///
 /// This function is meant to be used in `build.rs` and will panic on errors.
@@ -46,9 +46,8 @@ pub fn generate(
 
 fn cargo_rerun(dir: &Path) {
     for entry in WalkDir::new(dir) {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
+        let Ok(entry) = entry else {
+            continue
         };
 
         println!("cargo:rerun-if-changed={}", entry.path().to_string_lossy());
