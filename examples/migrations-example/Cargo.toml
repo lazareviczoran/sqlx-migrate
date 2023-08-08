@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 barrel = { version = "0.7.0", features = ["pg"] }
-sqlx = { version = "0.7.0", features = ["runtime-tokio-rustls", "postgres"] }
+sqlx = { git = "https://github.com/lazareviczoran/sqlx", branch = "pg-enum-schema-support", features = [
+  "runtime-tokio-rustls",
+  "postgres",
+] }
 sqlx-migrate = { version = "0.7.0", path = "../../crates/sqlx-migrate", features = [
   "cli",
   "postgres",
